@@ -4,8 +4,10 @@ A fully functional 3D multiplayer hide and seek game built with Three.js and Web
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/moostafia/hide-seek-3d)
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/moostafia/hide-seek-3d)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/moostafia/hide-seek-3d)
 
-> **🚀 Quick Deploy:** Click a button above or see [DEPLOYMENT.md](DEPLOYMENT.md) for all hosting options
+> **🚀 Quick Deploy:** Click a button above or see [DEPLOYMENT.md](DEPLOYMENT.md) for all hosting options  
+> **⚡ Instant Test:** Use [GitHub Codespaces](CODESPACES.md) for temporary hosting (no deployment needed!)
 
 ## ✨ Features
 

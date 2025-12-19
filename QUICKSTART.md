@@ -1,8 +1,25 @@
 # 🎯 Quick Deployment Guide
 
-**Want to share your game immediately? Follow these 3 steps:**
+**Want to share your game immediately? Choose your option:**
 
-## Option 1: Render (Easiest - Recommended) ⭐
+## Option 0: GitHub Codespaces (INSTANT - No Deployment!) ⚡
+
+### 1-Step Setup - Perfect for Quick Testing:
+
+1. **Click this button:** [![Open in Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/moostafia/hide-seek-3d)
+2. Wait 30 seconds for setup
+3. Run: `npm start`
+4. Set port 3000 to Public in PORTS tab
+5. Copy and share the URL!
+
+**Duration:** While Codespace is running (free 60hrs/month)  
+**Link Example:** `https://xyz-3000.app.github.dev`
+
+📚 **Full Codespaces Guide:** [CODESPACES.md](CODESPACES.md)
+
+---
+
+## Option 1: Render (Permanent - Recommended) ⭐
 
 ### 3-Step Deployment:
 
