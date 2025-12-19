@@ -2,6 +2,11 @@
 
 A fully functional 3D multiplayer hide and seek game built with Three.js and WebRTC voice chat. Features mobile-friendly controls, real-time multiplayer gameplay, and always-on voice communication.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/moostafia/hide-seek-3d)
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/moostafia/hide-seek-3d)
+
+> **🚀 Quick Deploy:** Click a button above or see [DEPLOYMENT.md](DEPLOYMENT.md) for all hosting options
+
 ## ✨ Features
 
 ### Game Mechanics
@@ -43,11 +48,15 @@ A fully functional 3D multiplayer hide and seek game built with Three.js and Web
 
 ## 🚀 Quick Start
 
-### Prerequisites
+> **Want to share with friends?** See [DEPLOYMENT.md](DEPLOYMENT.md) for free hosting options (Render, Railway, Glitch) - no sign-up required for players!
+
+### Local Development
+
+#### Prerequisites
 - Node.js (v14 or higher)
 - npm or yarn
 
-### Installation
+#### Installation
 
 1. Clone the repository:
 ```bash
@@ -158,7 +167,23 @@ hide-seek-3d/
 
 ## 🌐 Deployment
 
-### Deploy to Heroku
+**For detailed deployment instructions with free hosting options, see [DEPLOYMENT.md](DEPLOYMENT.md)**
+
+### Quick Deploy Options
+
+1. **Render** (Recommended) - Free tier with HTTPS
+   - Use the included `render.yaml` configuration
+   - [Deploy to Render](https://render.com)
+
+2. **Railway** - Great WebSocket support
+   - Use the included `railway.json` configuration
+   - [Deploy to Railway](https://railway.app)
+
+3. **Glitch** - Instant deployment
+   - Use the included `glitch.json` configuration
+   - [Deploy to Glitch](https://glitch.com)
+
+### Deploy to Heroku (Alternative)
 
 1. Create a Heroku app:
 ```bash
