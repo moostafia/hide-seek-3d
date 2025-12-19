@@ -1,0 +1,33 @@
+{
+  "name": "hide-seek-3d",
+  "version": "1.0.0",
+  "description": "A 3D hide and seek game built with Three.js",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server": "node server.js",
+    "start": "npm run build && npm run server",
+    "dev:server": "node server.js"
+  },
+  "keywords": [
+    "three.js",
+    "3d",
+    "game",
+    "hide-and-seek"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

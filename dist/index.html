@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Hide & Seek 3D - Christmas Edition</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      overflow: hidden;
+      touch-action: none;
+    }
+    canvas {
+      display: block;
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-family: Arial, sans-serif;
+      background: rgba(0,0,0,0.6);
+      padding: 15px;
+      border-radius: 10px;
+      max-width: 300px;
+    }
+    #info h2 {
+      color: #ff6b6b;
+      margin-bottom: 10px;
+    }
+    #viewToggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(200, 50, 50, 0.8);
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+    }
+    #viewToggle:hover {
+      background: rgba(220, 70, 70, 0.9);
+    }
+    
+    /* Video element for 3D texture */
+    #game-video {
+      display: none;
+    }
+    
+    /* Fallback YouTube link */
+    #youtube-link {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 0, 0, 0.8);
+      color: white;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-family: Arial, sans-serif;
+      text-decoration: none;
+      z-index: 100;
+      display: none;
+    }
+    #youtube-link:hover {
+      background: rgba(255, 50, 50, 0.9);
+    }
+    
+    /* Music control button */
+    #musicToggle {
+      position: absolute;
+      top: 10px;
+      right: 180px;
+      background: rgba(50, 150, 50, 0.8);
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+    }
+    #musicToggle:hover {
+      background: rgba(70, 170, 70, 0.9);
+    }
+    
+    /* Mic control button */
+    #micToggle {
+      position: absolute;
+      top: 10px;
+      right: 320px;
+      background: rgba(100, 100, 100, 0.8);
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      transition: background 0.2s;
+    }
+    #micToggle:hover {
+      background: rgba(120, 120, 120, 0.9);
+    }
+    #micToggle.mic-on {
+      background: rgba(50, 150, 200, 0.9);
+    }
+    #micToggle.mic-on:hover {
+      background: rgba(70, 170, 220, 0.95);
+    }
+    
+    /* Face Camera toggle button */
+    #faceCamToggle {
+      position: absolute;
+      top: 10px;
+      right: 460px;
+      background: rgba(150, 50, 150, 0.8);
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      transition: background 0.2s;
+    }
+    #faceCamToggle:hover {
+      background: rgba(170, 70, 170, 0.9);
+    }
+    #faceCamToggle.cam-on {
+      background: rgba(200, 50, 200, 0.9);
+    }
+    #faceCamToggle.cam-on:hover {
+      background: rgba(220, 70, 220, 0.95);
+    }
+    
+    /* Face camera video element */
+    #face-camera-video {
+      display: none;
+      width: 1;
+      height: 1;
+    }
+    
+    /* Mobile Controls */
+    #mobile-controls {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 200px;
+      pointer-events: none;
+    }
+    
+    @media (max-width: 768px), (pointer: coarse) {
+      #mobile-controls {
+        display: block;
+      }
+      #info {
+        font-size: 12px;
+        padding: 10px;
+        max-width: 200px;
+      }
+      #viewToggle, #musicToggle {
+        padding: 10px 15px;
+        font-size: 14px;
+      }
+      #musicToggle {
+        right: 130px;
+      }
+    }
+    
+    /* Joystick */
+    #joystick-container {
+      position: absolute;
+      bottom: 30px;
+      left: 30px;
+      width: 120px;
+      height: 120px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 50%;
+      pointer-events: auto;
+      touch-action: none;
+    }
+    #joystick {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 50px;
+      height: 50px;
+      background: rgba(255,255,255,0.7);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    
+    /* Look area */
+    #look-area {
+      position: absolute;
+      bottom: 30px;
+      right: 30px;
+      width: 150px;
+      height: 150px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 15px;
+      pointer-events: auto;
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+    }
+    
+    /* Loading screen */
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-family: Arial, sans-serif;
+      z-index: 1000;
+    }
+    #loading h1 {
+      color: #ff6b6b;
+      font-size: 2.5em;
+      margin-bottom: 20px;
+    }
+    #loading p {
+      font-size: 1.2em;
+      opacity: 0.8;
+    }
+    #start-btn {
+      margin-top: 30px;
+      padding: 20px 50px;
+      font-size: 1.3em;
+      background: linear-gradient(135deg, #c41e3a 0%, #ff6b6b 100%);
+      color: white;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    #start-btn:hover {
+      transform: scale(1.05);
+    }
+    #name-input-container {
+      margin: 20px 0;
+    }
+    #name-input-container label {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 1.1em;
+    }
+    #player-name {
+      padding: 15px 25px;
+      font-size: 1.2em;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.9);
+      color: #333;
+      text-align: center;
+      width: 250px;
+    }
+    #player-name:focus {
+      outline: 3px solid #ff6b6b;
+    }
+    
+    /* Chat Box - Collapsible Tab */
+    #chat-container {
+      position: fixed;
+      bottom: 50%;
+      left: 0;
+      transform: translateY(50%);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+    }
+    #chat-tab {
+      background: linear-gradient(180deg, rgba(255, 100, 100, 0.9), rgba(200, 50, 50, 0.9));
+      color: white;
+      padding: 15px 8px;
+      border-radius: 0 10px 10px 0;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+      user-select: none;
+      transition: background 0.2s;
+    }
+    #chat-tab:hover {
+      background: linear-gradient(180deg, rgba(255, 120, 120, 0.95), rgba(220, 70, 70, 0.95));
+    }
+    #chat-box {
+      width: 280px;
+      max-height: 300px;
+      background: rgba(0, 0, 0, 0.85);
+      border-radius: 0 10px 10px 0;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+      margin-left: -280px;
+      transition: margin-left 0.3s ease;
+      box-shadow: 2px 0 15px rgba(0,0,0,0.4);
+    }
+    #chat-box.open {
+      margin-left: 0;
+    }
+    #chat-header {
+      color: #ff6b6b;
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 8px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    #chat-messages {
+      height: 150px;
+      overflow-y: auto;
+      color: white;
+      font-size: 13px;
+      margin-bottom: 10px;
+      padding: 5px;
+    }
+    #chat-input {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.9);
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    #chat-input:focus {
+      outline: 2px solid #ff6b6b;
+    }
+    
+    @media (max-width: 768px) {
+      #chat-container {
+        bottom: 45%;
+      }
+      #chat-box {
+        width: 220px;
+        margin-left: -220px;
+        max-height: 250px;
+      }
+      #chat-box.open {
+        margin-left: 0;
+      }
+      #chat-messages {
+        height: 100px;
+      }
+      #chat-tab {
+        padding: 12px 6px;
+        font-size: 12px;
+      }
+    }
+    
+    /* Notifications */
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translate(-50%, -20px); }
+      15% { opacity: 1; transform: translate(-50%, 0); }
+      85% { opacity: 1; transform: translate(-50%, 0); }
+      100% { opacity: 0; transform: translate(-50%, -20px); }
+    }
+    
+    /* Player count styling */
+    #player-count {
+      color: #00ff00;
+      font-weight: bold;
+    }
+    #connection-status {
+      font-size: 12px;
+    }
+    
+    /* YouTube iframe for TV */
+    #youtube-container {
+      position: fixed;
+      pointer-events: none;
+      z-index: 5;
+    }
+    #youtube-frame {
+      border: none;
+      pointer-events: auto;
+      width: 100%;
+      height: 100%;
+    }
+    #youtube-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    
+    /* Dog Play Prompt */
+    #dog-play-prompt {
+      display: none;
+      position: fixed;
+      bottom: 200px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(145deg, rgba(139, 90, 43, 0.95), rgba(101, 67, 33, 0.95));
+      padding: 20px 30px;
+      border-radius: 15px;
+      font-family: Arial, sans-serif;
+      z-index: 150;
+      text-align: center;
+      border: 3px solid #d4a574;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.4);
+    }
+    #dog-play-prompt h3 {
+      color: #fff;
+      margin: 0 0 15px 0;
+      font-size: 18px;
+    }
+    #dog-play-prompt .dog-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+    }
+    #dog-play-prompt button {
+      padding: 12px 25px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    #dog-play-prompt button:hover {
+      transform: scale(1.05);
+    }
+    #dog-play-yes {
+      background: linear-gradient(135deg, #4CAF50, #45a049);
+      color: white;
+    }
+    #dog-play-no {
+      background: linear-gradient(135deg, #f44336, #d32f2f);
+      color: white;
+    }
+    
+    /* Dog Play Tab (beside chat) */
+    #dog-tab-container {
+      position: fixed;
+      bottom: calc(50% + 80px);
+      left: 0;
+      transform: translateY(50%);
+      z-index: 100;
+      display: none;
+      align-items: center;
+    }
+    #dog-tab {
+      background: linear-gradient(180deg, rgba(139, 90, 43, 0.95), rgba(101, 67, 33, 0.95));
+      color: white;
+      padding: 15px 8px;
+      border-radius: 0 10px 10px 0;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+      user-select: none;
+      transition: background 0.2s;
+    }
+    #dog-tab:hover {
+      background: linear-gradient(180deg, rgba(159, 110, 63, 0.95), rgba(121, 87, 53, 0.95));
+    }
+    
+    /* Throw Stick Button */
+    #throw-stick-btn {
+      display: none;
+      position: fixed;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #8B4513, #A0522D);
+      color: white;
+      padding: 15px 30px;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      cursor: pointer;
+      font-family: Arial, sans-serif;
+      z-index: 150;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transition: transform 0.2s, background 0.2s;
+    }
+    #throw-stick-btn:hover {
+      transform: translateX(-50%) scale(1.05);
+      background: linear-gradient(135deg, #A0522D, #CD853F);
+    }
+    
+    /* Multiplayer Link */
+    #multiplayer-link {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 15px;
+      background: linear-gradient(135deg, #4CAF50, #45a049);
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 12px;
+      transition: transform 0.2s, background 0.2s;
+    }
+    #multiplayer-link:hover {
+      transform: scale(1.05);
+      background: linear-gradient(135deg, #5CBF60, #55b059);
+    }
+    #copy-link-btn {
+      background: linear-gradient(135deg, #2196F3, #1976D2);
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-left: 5px;
+      transition: transform 0.2s;
+    }
+    #copy-link-btn:hover {
+      transform: scale(1.05);
+    }
+    .link-container {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/index-jdtZCXKR.js"></script>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading">
+    <h1>🎄 Hide & Seek 3D 🎄</h1>
+    <p>Christmas Edition</p>
+    <p style="color: #4CAF50; font-size: 14px; margin-top: 10px;">✨ No sign-up required - Just play! ✨</p>
+    <div id="name-input-container">
+      <label for="player-name">Your Snowman's Name (optional):</label>
+      <input type="text" id="player-name" placeholder="Enter a name or skip..." maxlength="20">
+    </div>
+    <div id="room-options" style="margin: 15px 0; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+      <label style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; color: #88ff88;">
+        <input type="checkbox" id="create-private-room" style="width: 18px; height: 18px; cursor: pointer;">
+        <span>🔒 Create Private Room (shareable link)</span>
+      </label>
+      <p id="room-join-info" style="font-size: 12px; color: #aaa; margin-top: 8px; display: none;"></p>
+    </div>
+    <button id="start-btn">🎅 Start Game 🎅</button>
+  </div>
+
+  <div id="info">
+    <h2>🎄 Christmas Hide & Seek</h2>
+    <p id="connection-status">⚪ Connecting...</p>
+    <p id="player-count">0/20 Players</p>
+    <p id="room-display" style="font-size: 11px; color: #88ff88;"></p>
+    <p><strong>Desktop:</strong> WASD to move, Mouse to look</p>
+    <p><strong>Mobile:</strong> Use joystick & swipe</p>
+    <p><strong>V key:</strong> Toggle view</p>
+    <div class="link-container">
+      <strong>🎮 Invite Friends (No Sign-up!):</strong><br>
+      <span style="font-size: 10px; color: #aaa;">Share link - they join your room instantly!</span><br>
+      <button id="copy-link-btn" onclick="copyGameLink()">📋 Copy Invite Link</button>
+    </div>
+  </div>
+  
+  <button id="faceCamToggle">📷 Face Cam</button>
+  <button id="micToggle">🎤 Mic Off</button>
+  <button id="musicToggle">🎵 Music</button>
+  <button id="viewToggle">👁️ First Person</button>
+  
+  <!-- Face camera video element -->
+  <video id="face-camera-video" autoplay playsinline></video>
+  
+  <!-- Chat Box - Collapsible Tab -->
+  <div id="chat-container">
+    <div id="chat-box">
+      <div id="chat-header">💬 Multiplayer Chat</div>
+      <div id="chat-messages"></div>
+      <input type="text" id="chat-input" placeholder="Press Enter to chat..." maxlength="100">
+    </div>
+    <div id="chat-tab">💬 Chat</div>
+  </div>
+  
+  <!-- AI Chatbot Dialog -->
+  <div id="chatbot-dialog" style="display: none; position: fixed; bottom: 160px; right: 20px; width: 320px; background: linear-gradient(145deg, rgba(60, 20, 100, 0.95), rgba(30, 10, 60, 0.95)); border-radius: 15px; padding: 15px; font-family: Arial, sans-serif; z-index: 200; border: 2px solid #9966ff; box-shadow: 0 0 20px rgba(102, 51, 255, 0.5);">
+    <div style="display: flex; align-items: center; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">
+      <div style="width: 40px; height: 40px; background: linear-gradient(145deg, #00ffff, #0088ff); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 10px;">✨</div>
+      <div>
+        <div style="color: #cc99ff; font-weight: bold; font-size: 16px;">Crystal (AI)</div>
+        <div style="color: #88ffaa; font-size: 11px;">🟢 Online • Claude Sonnet 4.5</div>
+      </div>
+    </div>
+    <div id="chatbot-messages" style="height: 140px; overflow-y: auto; color: white; font-size: 13px; margin-bottom: 10px; padding: 5px;"></div>
+    <input type="text" id="chatbot-input" placeholder="Say something to Crystal..." maxlength="200" style="width: 100%; padding: 12px; border: none; border-radius: 8px; background: rgba(255, 255, 255, 0.15); color: white; font-size: 14px; box-sizing: border-box;">
+    <div style="margin-top: 8px; color: rgba(255,255,255,0.5); font-size: 10px; text-align: center;">🎤 Voice enabled • Walk away to close</div>
+  </div>
+  
+  <!-- Mobile Controls -->
+  <div id="mobile-controls">
+    <div id="joystick-container">
+      <div id="joystick"></div>
+    </div>
+    <div id="look-area">Swipe to Look</div>
+  </div>
+  
+  <!-- Dog Play Prompt -->
+  <div id="dog-play-prompt">
+    <h3>🐕 Buddy wants to play fetch! 🦴</h3>
+    <div class="dog-buttons">
+      <button id="dog-play-yes">🎾 Yes, let's play!</button>
+      <button id="dog-play-no">❌ Not now</button>
+    </div>
+  </div>
+  
+  <!-- Dog Tab (beside chat) -->
+  <div id="dog-tab-container">
+    <div id="dog-tab">🐕 Stop Playing</div>
+  </div>
+  
+  <!-- Throw Stick Button -->
+  <button id="throw-stick-btn">🦴 Throw Stick!</button>
+  
+  <!-- Video element for 3D texture -->
+  <video id="game-video" loop crossorigin="anonymous" playsinline>
+    <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+  </video>
+  
+  <!-- YouTube iframe container -->
+  <div id="youtube-container">
+    <div id="youtube-frame"></div>
+  </div>
+  
+  <!-- YouTube link button -->
+  <a id="youtube-link" href="https://www.youtube.com/watch?v=SVN7vUsBiWM" target="_blank">🎵 Click here if video doesn't play 🎄</a>
+  
+  <script>
+    // Get room ID from URL
+    function getRoomIdFromUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('room');
+    }
+    
+    // Set multiplayer link and copy functionality
+    function getGameUrl() {
+      // This will be overridden by main.js after joining
+      const baseUrl = window.location.href.split('?')[0].split('#')[0];
+      const roomId = getRoomIdFromUrl();
+      if (roomId) {
+        return `${baseUrl}?room=${roomId}`;
+      }
+      return baseUrl;
+    }
+    
+    function copyGameLink() {
+      const url = typeof window.getGameUrl === 'function' ? window.getGameUrl() : getGameUrl();
+      navigator.clipboard.writeText(url).then(() => {
+        const btn = document.getElementById('copy-link-btn');
+        const originalText = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        btn.style.background = 'linear-gradient(135deg, #4CAF50, #45a049)';
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.style.background = '';
+        }, 2000);
+      }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = typeof window.getGameUrl === 'function' ? window.getGameUrl() : getGameUrl();
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Link copied: ' + (typeof window.getGameUrl === 'function' ? window.getGameUrl() : getGameUrl()));
+      });
+    }
+    
+    // Check if joining via room link
+    document.addEventListener('DOMContentLoaded', () => {
+      const roomId = getRoomIdFromUrl();
+      const roomJoinInfo = document.getElementById('room-join-info');
+      const privateRoomCheckbox = document.getElementById('create-private-room');
+      
+      if (roomId) {
+        // Joining an existing room
+        if (roomJoinInfo) {
+          roomJoinInfo.textContent = `🎮 Joining room: ${roomId}`;
+          roomJoinInfo.style.display = 'block';
+          roomJoinInfo.style.color = '#88ff88';
+        }
+        // Hide the create private room option since we're joining
+        if (privateRoomCheckbox) {
+          privateRoomCheckbox.parentElement.style.display = 'none';
+        }
+      }
+      
+      const link = document.getElementById('multiplayer-link');
+      if (link) {
+        link.href = getGameUrl();
+      }
+    });
+  </script>
+  
+</body>
+</html>
