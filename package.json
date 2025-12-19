@@ -1,0 +1,26 @@
+{
+  "name": "hide-seek-3d",
+  "version": "1.0.0",
+  "description": "A 3D multiplayer hide and seek game with WebRTC voice chat",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js"
+  },
+  "keywords": [
+    "threejs",
+    "webrtc",
+    "multiplayer",
+    "hide-and-seek",
+    "game"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

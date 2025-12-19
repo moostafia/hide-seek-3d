@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Hide & Seek 3D</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Main Menu -->
+  <div id="mainMenu" class="screen active">
+    <div class="menu-container">
+      <h1>🎮 Hide & Seek 3D</h1>
+      <div class="input-group">
+        <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" />
+      </div>
+      <button id="createRoomBtn" class="btn btn-primary">Create Room</button>
+      <div class="divider">OR</div>
+      <div class="input-group">
+        <input type="text" id="roomCodeInput" placeholder="Enter room code" maxlength="6" />
+      </div>
+      <button id="joinRoomBtn" class="btn btn-secondary">Join Room</button>
+    </div>
+  </div>
+
+  <!-- Lobby Screen -->
+  <div id="lobbyScreen" class="screen">
+    <div class="lobby-container">
+      <h2>Room: <span id="roomCodeDisplay"></span></h2>
+      <div class="players-list">
+        <h3>Players</h3>
+        <div id="playersList"></div>
+      </div>
+      <div class="lobby-controls">
+        <button id="readyBtn" class="btn btn-secondary">Ready</button>
+        <button id="startGameBtn" class="btn btn-primary" style="display: none;">Start Game</button>
+        <button id="leaveLobbyBtn" class="btn btn-danger">Leave</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="gameScreen" class="screen">
+    <!-- Three.js Canvas -->
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- Game HUD -->
+    <div id="gameHUD">
+      <div class="hud-top">
+        <div id="roleDisplay" class="role-badge"></div>
+        <div id="timerDisplay" class="timer">0:00</div>
+        <div id="playersCount" class="players-count">Hiders: 0</div>
+      </div>
+      <div id="phaseMessage" class="phase-message"></div>
+    </div>
+
+    <!-- Seeker Block Overlay -->
+    <div id="seekerBlockOverlay" class="seeker-block-overlay">
+      <h2>🙈 Hiding Phase</h2>
+      <p>Wait for the hiders to hide...</p>
+    </div>
+
+    <!-- Mobile Controls -->
+    <div id="mobileControls" class="mobile-controls">
+      <div id="joystickZone" class="joystick-zone">
+        <div id="joystick" class="joystick">
+          <div class="joystick-knob"></div>
+        </div>
+      </div>
+      <div id="actionBtn" class="action-btn">TAG</div>
+    </div>
+
+    <!-- Voice Chat Controls -->
+    <div id="voiceChatControls">
+      <button id="muteBtn" class="voice-btn">
+        <span id="muteIcon">🎤</span>
+      </button>
+      <div id="speakingIndicators"></div>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="gameOverScreen" class="screen">
+    <div class="gameover-container">
+      <h1 id="winnerText"></h1>
+      <div id="gameStats"></div>
+      <button id="playAgainBtn" class="btn btn-primary">Play Again</button>
+      <button id="mainMenuBtn" class="btn btn-secondary">Main Menu</button>
+    </div>
+  </div>
+
+  <!-- Loading Indicator -->
+  <div id="loadingIndicator" class="loading">
+    <div class="spinner"></div>
+    <p>Connecting...</p>
+  </div>
+
+  <!-- Import Three.js from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r150/three.min.js"></script>
+  
+  <!-- Import Socket.IO from CDN -->
+  <script src="/socket.io/socket.io.js"></script>
+  
+  <!-- Import SimplePeer from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-peer/9.11.1/simplepeer.min.js"></script>
+
+  <!-- Game Scripts -->
+  <script src="js/environment.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/controls.js"></script>
+  <script src="js/voiceChat.js"></script>
+  <script src="js/network.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

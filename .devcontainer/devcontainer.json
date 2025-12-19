@@ -1,0 +1,21 @@
+{
+  "name": "Hide & Seek 3D",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:18",
+  "features": {},
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Hide & Seek 3D Game",
+      "onAutoForward": "notify",
+      "visibility": "public"
+    }
+  },
+  "postCreateCommand": "npm install",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  }
+}
