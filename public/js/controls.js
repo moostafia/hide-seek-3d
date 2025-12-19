@@ -37,6 +37,19 @@ class Controls {
     // Keyboard controls
     document.addEventListener('keydown', (e) => {
       this.keys[e.key.toLowerCase()] = true;
+      
+      // Handle Space key for tagging
+      if (e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        this.onAction();
+      }
+      
+      // Handle M key for mute
+      if (e.key.toLowerCase() === 'm') {
+        if (window.voiceChat) {
+          window.voiceChat.toggleMute();
+        }
+      }
     });
 
     document.addEventListener('keyup', (e) => {

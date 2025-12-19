@@ -98,6 +98,9 @@ class Game {
       // Update UI
       window.ui.setRole(this.myRole);
       window.ui.showScreen('gameScreen');
+      
+      // Show/hide seeker overlay during hiding phase
+      this.updateSeekerOverlay();
     }
 
     // Create remote players
@@ -141,6 +144,20 @@ class Game {
         window.ui.showPhaseMessage('👁️ SEEK! Find all hiders!');
       } else {
         window.ui.showPhaseMessage('🏃 Stay hidden!');
+      }
+    }
+    
+    // Update seeker overlay
+    this.updateSeekerOverlay();
+  }
+
+  updateSeekerOverlay() {
+    const overlay = document.getElementById('seekerBlockOverlay');
+    if (overlay) {
+      if (this.gameState === 'hiding' && this.myRole === 'seeker') {
+        overlay.classList.add('active');
+      } else {
+        overlay.classList.remove('active');
       }
     }
   }
@@ -241,12 +258,6 @@ class Game {
       }
       
       window.ui.updateTimer(remaining);
-    }
-
-    // Seeker blocking during hiding phase
-    if (this.gameState === 'hiding' && this.myRole === 'seeker') {
-      // Could add a dark overlay or blur effect here
-      // For now, just show message in HUD
     }
   }
 
