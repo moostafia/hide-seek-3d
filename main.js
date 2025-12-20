@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { io } from 'socket.io-client';
+import Peer from 'peerjs';
 
 // Game state
 let gameStarted = false;
@@ -30,12 +30,17 @@ let dogProximityShown = false;
 let lastBarkTime = 0;
 let barkAudioContext = null;
 
-// Multiplayer state
-const remotePlayers = new Map(); // Other players' snowmen
-let socket = null;
-const TICK_RATE = 50; // Send position updates every 50ms
+// Multiplayer state - Simple WebRTC
+const remotePlayers = new Map();
+const peerConnections = new Map();
+const voiceCalls = new Map(); // Voice call connections
+let peer = null;
+let isHost = false;
+let localStream = null; // Microphone stream
+let micEnabled = false;
+const TICK_RATE = 50;
 let lastUpdateTime = 0;
-let currentRoomId = null; // Current room ID for multiplayer
+const ROOM_ID = 'family-christmas-2024'; // Fixed room - everyone joins same place
 
 // Get room ID from URL parameters
 function getRoomIdFromUrl() {
@@ -57,96 +62,358 @@ function generateRoomId() {
 function getShareableUrl() {
   const baseUrl = window.location.href.split('?')[0].split('#')[0];
   if (currentRoomId) {
-    return `${baseUrl}?room=${currentRoomId}`;
+    return baseUrl;
   }
   return baseUrl;
 }
 
-// Connect to server
-function connectToServer() {
-  // For production deployments (Heroku, Railway, Render, etc.), 
-  // the server typically runs on the same port as the static files
-  // For local dev, we connect to port 3000
-  const isLocalDev = window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1';
+// ============ SIMPLE WEBRTC MULTIPLAYER (ONE ROOM) ============
+
+// Join the family game room
+function joinGame() {
+  myPlayerId = 'player-' + Math.random().toString(36).substr(2, 9);
   
-  // In production, socket.io should connect to the same origin
-  // In development, connect to the dev server on port 3000
-  const serverUrl = isLocalDev && window.location.port !== '3000'
-    ? `${window.location.protocol}//${window.location.hostname}:3000`
-    : window.location.origin;
-  
-  console.log('Connecting to server:', serverUrl);
-  
-  socket = io(serverUrl, {
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000
+  peer = new Peer(myPlayerId, {
+    debug: 0
   });
   
-  socket.on('connect', () => {
-    console.log('Connected to server');
+  peer.on('open', (id) => {
+    console.log('Connected as:', id);
     updateConnectionStatus('connected');
+    
+    // Try to connect to host
+    tryConnectToHost();
   });
   
-  socket.on('disconnect', () => {
-    console.log('Disconnected from server');
-    updateConnectionStatus('disconnected');
+  // Listen for incoming connections (if we become host)
+  peer.on('connection', (conn) => {
+    console.log('Player connecting:', conn.peer);
+    setupConnection(conn);
   });
   
-  socket.on('connect_error', (error) => {
-    console.log('Connection error:', error);
-    updateConnectionStatus('offline');
-    // Create NPCs for offline mode
-    if (npcSnowmen.length === 0) {
-      createOfflineNPCs();
+  // Listen for voice calls
+  peer.on('call', (call) => {
+    console.log('Incoming voice call from:', call.peer);
+    // Answer with our stream if mic is on, otherwise empty
+    call.answer(localStream || undefined);
+    setupVoiceCall(call);
+  });
+  
+  peer.on('error', (err) => {
+    console.error('Peer error:', err);
+    if (err.type === 'peer-unavailable') {
+      // Host not found, become the host
+      console.log('No host found, becoming host');
+      becomeHost();
+    }
+  });
+}
+
+// Try to connect to existing host
+function tryConnectToHost() {
+  const conn = peer.connect('hideseek-' + ROOM_ID, { reliable: true });
+  
+  conn.on('open', () => {
+    console.log('Connected to host!');
+    isHost = false;
+    peerConnections.set('host', conn);
+    
+    // Send our info
+    conn.send({
+      type: 'player-join',
+      id: myPlayerId,
+      name: playerName || 'Snowman',
+      position: { x: playerGroup.position.x, y: 0, z: playerGroup.position.z },
+      rotation: playerGroup.rotation.y
+    });
+    
+    // Start voice call to host if mic is on
+    if (localStream) {
+      const call = peer.call('hideseek-' + ROOM_ID, localStream);
+      setupVoiceCall(call);
     }
   });
   
-  socket.on('room-full', (data) => {
-    alert(data.message);
-    updateConnectionStatus('full');
+  conn.on('data', (data) => handlePeerData(data, conn));
+  conn.on('close', () => {
+    console.log('Host disconnected, becoming new host');
+    peerConnections.delete('host');
+    becomeHost();
   });
   
-  socket.on('player-joined', (data) => {
-    myPlayerId = data.id;
-    currentRoomId = data.roomId;
-    console.log('Joined room:', data.roomId, 'as:', data.player.name);
+  conn.on('error', () => {
+    // Connection failed, become host
+    becomeHost();
+  });
+  
+  // Timeout - if no connection after 3 seconds, become host
+  setTimeout(() => {
+    if (!peerConnections.has('host') && !isHost) {
+      console.log('Connection timeout, becoming host');
+      becomeHost();
+    }
+  }, 3000);
+}
+
+// Become the host
+function becomeHost() {
+  if (isHost) return;
+  
+  console.log('Becoming host...');
+  peer.destroy();
+  
+  peer = new Peer('hideseek-' + ROOM_ID, { debug: 0 });
+  
+  peer.on('open', () => {
+    console.log('Now hosting!');
+    isHost = true;
+    updateConnectionStatus('hosting');
+    showNotification('🎄 You are the host!');
+  });
+  
+  peer.on('connection', (conn) => {
+    console.log('Player connecting:', conn.peer);
+    setupConnection(conn);
+  });
+  
+  peer.on('call', (call) => {
+    call.answer(localStream || undefined);
+    setupVoiceCall(call);
+  });
+  
+  peer.on('error', (err) => {
+    console.error('Host error:', err);
+    if (err.type === 'unavailable-id') {
+      // Someone else is already host, try connecting again
+      setTimeout(() => {
+        peer.destroy();
+        joinGame();
+      }, 1000);
+    }
+  });
+}
+
+// Setup data connection
+function setupConnection(conn) {
+  conn.on('open', () => {
+    console.log('Connection opened:', conn.peer);
+    peerConnections.set(conn.peer, conn);
+  });
+  
+  conn.on('data', (data) => handlePeerData(data, conn));
+  
+  conn.on('close', () => {
+    console.log('Player left:', conn.peer);
+    peerConnections.delete(conn.peer);
     
-    // Update the share link with room ID
-    updateShareLink();
-    
-    // Apply our appearance from server
-    applyAppearanceToSnowman(playerGroup, data.player.appearance);
-    
-    // Add existing players
-    data.players.forEach(player => {
-      addRemotePlayer(player);
+    // Remove their snowman
+    remotePlayers.forEach((snowman, id) => {
+      if (snowman.userData.peerId === conn.peer) {
+        removeRemotePlayer(id);
+        broadcastToAll({ type: 'player-left', id: id }, conn.peer);
+      }
     });
+    
+    updatePlayerCount(peerConnections.size + 1);
+  });
+}
+
+// Setup voice call
+function setupVoiceCall(call) {
+  voiceCalls.set(call.peer, call);
+  
+  call.on('stream', (remoteStream) => {
+    // Play remote audio
+    const audio = new Audio();
+    audio.srcObject = remoteStream;
+    audio.play().catch(e => console.log('Audio play failed:', e));
   });
   
-  socket.on('player-connected', (player) => {
-    console.log('Player connected:', player.name);
-    addRemotePlayer(player);
-    showNotification(`${player.name} joined! 🎄`);
+  call.on('close', () => {
+    voiceCalls.delete(call.peer);
   });
+}
+
+// Handle incoming data
+function handlePeerData(data, conn) {
+  switch(data.type) {
+    case 'player-join':
+      data.peerId = conn.peer;
+      addRemotePlayer(data);
+      showNotification(`${data.name} joined! 🎄`);
+      
+      if (isHost) {
+        // Send existing players
+        const players = [];
+        remotePlayers.forEach((snowman, id) => {
+          if (id !== data.id) {
+            players.push({
+              id: id,
+              name: snowman.userData.playerName || 'Snowman',
+              position: { x: snowman.position.x, y: 0, z: snowman.position.z },
+              rotation: snowman.rotation.y
+            });
+          }
+        });
+        
+        conn.send({
+          type: 'player-list',
+          players: players,
+          host: {
+            id: myPlayerId,
+            name: playerName || 'Host',
+            position: { x: playerGroup.position.x, y: 0, z: playerGroup.position.z },
+            rotation: playerGroup.rotation.y
+          }
+        });
+        
+        // Tell others about new player
+        broadcastToAll({
+          type: 'player-joined',
+          id: data.id,
+          name: data.name,
+          position: data.position,
+          rotation: data.rotation
+        }, conn.peer);
+        
+        updatePlayerCount(peerConnections.size + 1);
+      }
+      break;
+      
+    case 'player-list':
+      if (data.host) addRemotePlayer(data.host);
+      data.players.forEach(p => addRemotePlayer(p));
+      updatePlayerCount(data.players.length + 2);
+      break;
+      
+    case 'player-joined':
+      addRemotePlayer(data);
+      showNotification(`${data.name} joined! 🎄`);
+      break;
+      
+    case 'player-left':
+      removeRemotePlayer(data.id);
+      break;
+      
+    case 'player-move':
+      updateRemotePlayer(data.id, data.position, data.rotation);
+      if (isHost) broadcastToAll(data, conn.peer);
+      break;
+      
+    case 'chat-message':
+      showChatMessage(data.name, data.message);
+      if (isHost) broadcastToAll(data, conn.peer);
+      break;
+  }
+}
+
+// Broadcast to all peers
+function broadcastToAll(data, excludePeer = null) {
+  peerConnections.forEach((conn, peerId) => {
+    if (peerId !== excludePeer && peerId !== 'host' && conn.open) {
+      conn.send(data);
+    }
+  });
+}
+
+// Send player position via WebRTC
+function sendPlayerPositionPeer() {
+  if (!peer || !gameStarted) return;
+  if (peerConnections.size === 0 && !isHost) return;
   
-  socket.on('player-disconnected', (data) => {
-    removeRemotePlayer(data.id);
-  });
+  const now = Date.now();
+  if (now - lastUpdateTime < TICK_RATE) return;
+  lastUpdateTime = now;
   
-  socket.on('player-moved', (data) => {
-    updateRemotePlayer(data.id, data.position, data.rotation);
-  });
+  const moveData = {
+    type: 'player-move',
+    id: myPlayerId,
+    position: {
+      x: playerGroup.position.x,
+      y: playerGroup.position.y,
+      z: playerGroup.position.z
+    },
+    rotation: playerGroup.rotation.y
+  };
   
-  socket.on('player-count', (data) => {
-    updatePlayerCount(data.current, data.max, data.roomId);
-  });
+  if (isHost) {
+    broadcastToAll(moveData);
+  } else {
+    const hostConn = peerConnections.get('host');
+    if (hostConn && hostConn.open) {
+      hostConn.send(moveData);
+    }
+  }
+}
+
+// Send chat message via WebRTC
+function sendChatMessagePeer(message) {
+  if (!peer) return;
   
-  socket.on('chat-message', (data) => {
-    showChatMessage(data.name, data.message);
-  });
+  const chatData = {
+    type: 'chat-message',
+    name: playerName || 'Anonymous',
+    message: message
+  };
+  
+  if (isHost) {
+    broadcastToAll(chatData);
+    showChatMessage(chatData.name, chatData.message);
+  } else {
+    const hostConn = peerConnections.get('host');
+    if (hostConn && hostConn.open) {
+      hostConn.send(chatData);
+      showChatMessage(chatData.name, chatData.message);
+    }
+  }
+}
+
+// ============ SIMPLE MIC ON/OFF ============
+
+async function toggleMic() {
+  const micBtn = document.getElementById('micToggle');
+  
+  if (micEnabled) {
+    // Turn off mic
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      localStream = null;
+    }
+    micEnabled = false;
+    if (micBtn) {
+      micBtn.textContent = '🎤 Mic Off';
+      micBtn.style.background = 'rgba(100, 100, 100, 0.8)';
+    }
+    showNotification('🔇 Mic off');
+  } else {
+    // Turn on mic
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      micEnabled = true;
+      if (micBtn) {
+        micBtn.textContent = '🎤 Mic On';
+        micBtn.style.background = 'rgba(50, 150, 50, 0.8)';
+      }
+      showNotification('🎤 Mic on - others can hear you!');
+      
+      // Call all connected peers with our audio
+      if (isHost) {
+        peerConnections.forEach((conn, peerId) => {
+          if (peerId !== 'host') {
+            const call = peer.call(peerId, localStream);
+            setupVoiceCall(call);
+          }
+        });
+      } else {
+        // Call the host
+        const call = peer.call('hideseek-' + ROOM_ID, localStream);
+        if (call) setupVoiceCall(call);
+      }
+    } catch (err) {
+      console.error('Mic error:', err);
+      showNotification('❌ Could not access microphone');
+    }
+  }
 }
 
 // Update connection status UI
@@ -155,8 +422,12 @@ function updateConnectionStatus(status) {
   if (!statusEl) return;
   
   switch(status) {
+    case 'hosting':
+      statusEl.textContent = '🟢 Hosting';
+      statusEl.style.color = '#00ff00';
+      break;
     case 'connected':
-      statusEl.textContent = '🟢 Online';
+      statusEl.textContent = '🟢 Connected';
       statusEl.style.color = '#00ff00';
       break;
     case 'disconnected':
@@ -164,46 +435,22 @@ function updateConnectionStatus(status) {
       statusEl.style.color = '#ff0000';
       break;
     case 'offline':
-      statusEl.textContent = '⚪ Offline Mode';
+      statusEl.textContent = '⚪ Offline';
       statusEl.style.color = '#ffff00';
       break;
-    case 'full':
-      statusEl.textContent = '🔴 Room Full';
+    case 'error':
+      statusEl.textContent = '🔴 Error';
       statusEl.style.color = '#ff0000';
       break;
   }
 }
 
 // Update player count display
-function updatePlayerCount(current, max, roomId) {
+function updatePlayerCount(count) {
   const countEl = document.getElementById('player-count');
   if (countEl) {
-    if (roomId && roomId !== 'christmas-lobby') {
-      countEl.textContent = `${current}/${max} Players (Room: ${roomId})`;
-    } else {
-      countEl.textContent = `${current}/${max} Players (Public)`;
-    }
+    countEl.textContent = `${count} Players`;
   }
-}
-
-// Update share link with current room
-function updateShareLink() {
-  const shareUrl = getShareableUrl();
-  
-  // Update copy function reference
-  window.getGameUrl = function() {
-    return shareUrl;
-  };
-  
-  // Update room display
-  const roomDisplay = document.getElementById('room-display');
-  if (roomDisplay && currentRoomId) {
-    roomDisplay.textContent = currentRoomId !== 'christmas-lobby' 
-      ? `Private Room: ${currentRoomId}` 
-      : 'Public Lobby';
-  }
-  
-  console.log('Share URL:', shareUrl);
 }
 
 // Show notification
@@ -806,22 +1053,9 @@ function interpolateRemotePlayers() {
   });
 }
 
-// Send player position to server
+// Send player position (now uses WebRTC)
 function sendPlayerPosition() {
-  if (!socket || !socket.connected || !gameStarted) return;
-  
-  const now = Date.now();
-  if (now - lastUpdateTime < TICK_RATE) return;
-  lastUpdateTime = now;
-  
-  socket.emit('player-move', {
-    position: {
-      x: playerGroup.position.x,
-      y: playerGroup.position.y,
-      z: playerGroup.position.z
-    },
-    rotation: playerGroup.rotation.y
-  });
+  sendPlayerPositionPeer();
 }
 
 // Create floating name tag
@@ -3051,46 +3285,29 @@ const loadingScreen = document.getElementById('loading');
 const startBtn = document.getElementById('start-btn');
 const playerNameInput = document.getElementById('player-name');
 
-// Connect to server when page loads
-connectToServer();
-
 startBtn.addEventListener('click', () => {
   gameStarted = true;
   loadingScreen.style.display = 'none';
   
-  // Get player name if entered
-  playerName = playerNameInput.value.trim();
-  if (playerName) {
-    addNameToSnowman(playerGroup, playerName);
-  }
+  // Get player name
+  playerName = playerNameInput.value.trim() || 'Snowman';
+  addNameToSnowman(playerGroup, playerName);
   
-  // Get room ID from URL or generate new one for private games
-  let roomId = getRoomIdFromUrl();
-  
-  // Check if user wants to create a private room
-  const createPrivateRoom = document.getElementById('create-private-room');
-  if (createPrivateRoom && createPrivateRoom.checked && !roomId) {
-    roomId = generateRoomId();
-    // Update URL without reloading
-    const newUrl = `${window.location.pathname}?room=${roomId}`;
-    window.history.pushState({ roomId }, '', newUrl);
-  }
-  
-  // Join the game server with room ID
-  if (socket && socket.connected) {
-    socket.emit('player-join', {
-      name: playerName || `Snowman-${Math.floor(Math.random() * 1000)}`,
-      roomId: roomId // null means public lobby
-    });
-  }
+  // Join the family room automatically
+  joinGame();
   
   // Start video
   toggleMusic();
 });
 
+// Setup mic button
+const micBtn = document.getElementById('micToggle');
+if (micBtn) {
+  micBtn.addEventListener('click', toggleMic);
+}
+
 // ============ MICROPHONE / SPEECH RECOGNITION ============
 
-let micEnabled = false;
 let recognition = null;
 
 // Initialize speech recognition
@@ -3120,10 +3337,8 @@ function initSpeechRecognition() {
         }
       }
       
-      // Otherwise send to multiplayer chat
-      if (socket && socket.connected) {
-        socket.emit('chat-message', { message: transcript });
-      }
+      // Otherwise send to multiplayer chat via WebRTC
+      sendChatMessagePeer(transcript);
     }
   };
   
@@ -3163,32 +3378,19 @@ function updateMicButton() {
   }
 }
 
-function toggleMic() {
-  micEnabled = !micEnabled;
-  
-  if (micEnabled) {
-    if (!recognition) {
-      recognition = initSpeechRecognition();
-    }
-    if (recognition) {
-      try {
-        recognition.start();
-        console.log('Microphone enabled - listening...');
-      } catch (e) {
-        console.log('Recognition already started');
-      }
-    } else {
-      alert('Speech recognition is not supported in this browser.');
-      micEnabled = false;
-    }
-  } else {
-    if (recognition) {
-      recognition.stop();
-      console.log('Microphone disabled');
+// Old speech recognition toggle - replaced by WebRTC voice
+function toggleSpeechRecognition() {
+  // Speech-to-text for chat (optional)
+  if (!recognition) {
+    recognition = initSpeechRecognition();
+  }
+  if (recognition) {
+    try {
+      recognition.start();
+    } catch (e) {
+      console.log('Recognition already started');
     }
   }
-  
-  updateMicButton();
 }
 
 // ============ FACE CAMERA FEATURE ============
@@ -3420,9 +3622,8 @@ const chatInput = document.getElementById('chat-input');
 if (chatInput) {
   chatInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && chatInput.value.trim()) {
-      if (socket && socket.connected) {
-        socket.emit('chat-message', { message: chatInput.value.trim() });
-      }
+      // Send via WebRTC
+      sendChatMessagePeer(chatInput.value.trim());
       chatInput.value = '';
       // Close chat on mobile after sending
       if (window.innerWidth <= 768 && chatBox) {

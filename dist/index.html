@@ -541,41 +541,28 @@
       border-top: 1px solid rgba(255,255,255,0.2);
     }
   </style>
-  <script type="module" crossorigin src="/assets/index-oVQ4hgmk.js"></script>
+  <script type="module" crossorigin src="/assets/index-DYFqngRd.js"></script>
 </head>
 <body>
   <!-- Loading Screen -->
   <div id="loading">
     <h1>🎄 Hide & Seek 3D 🎄</h1>
     <p>Christmas Edition</p>
-    <p style="color: #4CAF50; font-size: 14px; margin-top: 10px;">✨ No sign-up required - Just play! ✨</p>
+    <p style="color: #4CAF50; font-size: 14px; margin-top: 10px;">✨ Family Game - Just Play! ✨</p>
     <div id="name-input-container">
-      <label for="player-name">Your Snowman's Name (optional):</label>
-      <input type="text" id="player-name" placeholder="Enter a name or skip..." maxlength="20">
+      <label for="player-name">Your Snowman's Name:</label>
+      <input type="text" id="player-name" placeholder="Enter your name..." maxlength="20">
     </div>
-    <div id="room-options" style="margin: 15px 0; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 10px;">
-      <label style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; color: #88ff88;">
-        <input type="checkbox" id="create-private-room" style="width: 18px; height: 18px; cursor: pointer;">
-        <span>🔒 Create Private Room (shareable link)</span>
-      </label>
-      <p id="room-join-info" style="font-size: 12px; color: #aaa; margin-top: 8px; display: none;"></p>
-    </div>
-    <button id="start-btn">🎅 Start Game 🎅</button>
+    <button id="start-btn">🎅 Join Game 🎅</button>
   </div>
 
   <div id="info">
     <h2>🎄 Christmas Hide & Seek</h2>
     <p id="connection-status">⚪ Connecting...</p>
-    <p id="player-count">0/20 Players</p>
-    <p id="room-display" style="font-size: 11px; color: #88ff88;"></p>
+    <p id="player-count">0 Players</p>
     <p><strong>Desktop:</strong> WASD to move, Mouse to look</p>
     <p><strong>Mobile:</strong> Use joystick & swipe</p>
     <p><strong>V key:</strong> Toggle view</p>
-    <div class="link-container">
-      <strong>🎮 Invite Friends (No Sign-up!):</strong><br>
-      <span style="font-size: 10px; color: #aaa;">Share link - they join your room instantly!</span><br>
-      <button id="copy-link-btn" onclick="copyGameLink()">📋 Copy Invite Link</button>
-    </div>
   </div>
   
   <button id="faceCamToggle">📷 Face Cam</button>
